@@ -111,6 +111,32 @@ namespace OfficeConverter
 
             try
             {
+
+
+                //select output format
+                object format = WordInterop.WdSaveFormat.wdFormatDocumentDefault;
+                string formatString = outputFile.Substring(outputFile.LastIndexOf(".") + 1);
+                if (formatString == "doc")
+                    format = WordInterop.WdSaveFormat.wdFormatDocument;
+                if (formatString == "docx")
+                    format = WordInterop.WdSaveFormat.wdFormatXMLDocument;
+                if (formatString == "rtf")
+                    format = WordInterop.WdSaveFormat.wdFormatRTF;
+                if (formatString == "txt")
+                    format = WordInterop.WdSaveFormat.wdFormatText;
+                if (formatString == "html")
+                    format = WordInterop.WdSaveFormat.wdFormatHTML;
+                if (formatString == "odt")
+                    format = WordInterop.WdSaveFormat.wdFormatOpenDocumentText;
+                if (formatString == "pdf")
+                    format = WordInterop.WdSaveFormat.wdFormatPDF;
+                if (formatString == "xps")
+                    format = WordInterop.WdSaveFormat.wdFormatXPS;
+                if (formatString == "xml")
+                    format = WordInterop.WdSaveFormat.wdFormatXML;
+                if (formatString == "unicode")
+                    format = WordInterop.WdSaveFormat.wdFormatUnicodeText;
+                
                 word = new WordInterop.ApplicationClass
                 {
                     ScreenUpdating = false,
@@ -147,7 +173,7 @@ namespace OfficeConverter
                 word.DisplayScreenTips = false;
                 word.DisplayStatusBar = false;
 
-                document.ExportAsFixedFormat(outputFile, WordInterop.WdExportFormat.wdExportFormatPDF);
+                document.SaveAs2(outputFile, format);
             }
             finally
             {
