@@ -21,8 +21,10 @@ namespace OfficeConverter
             }
             //read filenames
             string inputFile = args[0];
+            string outputFile = args[1];
 
             Converter converter = new Converter();
+            converter.Convert(inputFile, outputFile);
         }
     }
 }
