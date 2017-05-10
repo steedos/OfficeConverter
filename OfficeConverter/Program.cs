@@ -25,6 +25,7 @@ namespace OfficeConverter
 
             Converter converter = new Converter();
             converter.Convert(inputFile, outputFile);
+            
         }
     }
 }

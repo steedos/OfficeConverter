@@ -111,8 +111,6 @@ namespace OfficeConverter
 
             try
             {
-
-
                 //select output format
                 object format = WordInterop.WdSaveFormat.wdFormatDocumentDefault;
                 string formatString = outputFile.Substring(outputFile.LastIndexOf(".") + 1);
@@ -172,8 +170,10 @@ namespace OfficeConverter
                 word.DisplayAutoCompleteTips = false;
                 word.DisplayScreenTips = false;
                 word.DisplayStatusBar = false;
+                document.SaveAs2(outputFile, format,Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, MsoEncoding.msoEncodingUTF8);
 
-                document.SaveAs2(outputFile, format);
+                //document.SaveAs2(outputFile,format);
+                //保存后转码
             }
             finally
             {

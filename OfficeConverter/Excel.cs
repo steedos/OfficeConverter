@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing.Printing;
 using System.Globalization;
 using System.IO;
+using System.Data;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Office.Core;
@@ -691,14 +692,119 @@ namespace OfficeConverter
             // We only need to perform this check if we are running on a server
             if (NativeMethods.IsWindowsServer())
                 CheckIfSystemProfileDesktopDirectoryExists();
-
             CheckIfPrinterIsInstalled();
             DeleteAutoRecoveryFiles();
+            string formatString = outputFile.Substring(outputFile.LastIndexOf(".") + 1);
 
+            if (formatString == "txt")
+                SaveAsTXT(inputFile, outputFile);
+            if (formatString == "pdf")
+                SaveAsPDF(inputFile, outputFile);
+            //释放内存
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+        #endregion
+
+        //#region GetCon
+        ///// <summary>
+        ///// Connect to excle
+        ///// </summary>
+        //private static OleDbConnection GetCon(string excelPath)
+        //{
+        //    try
+        //    {
+        //        string strConn = "Provider=Microsoft.Jet.OLEDB.4.0;" + "Data Source=" + excelPath + ";" + "Extended Properties=Excel 8.0;";
+        //        OleDbConnection conn = new OleDbConnection(strConn);
+        //        conn.Open();
+        //        return conn;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new ArgumentException("Failed Open Excel", ex.Message);
+        //    }
+        //}
+        //#endregion
+
+        #region GetSheetData
+        /// <summary>
+        /// Connect to excle
+        /// </summary>
+        private static DataTable GetSheetData(ExcelInterop.Worksheet sheet)
+        {
+            DataTable dt = new DataTable();
+            if (sheet != null)
+            {
+                string cellContent;
+                int iRowCount = sheet.UsedRange.Rows.Count;
+                int iColCount = sheet.UsedRange.Columns.Count;
+                ExcelInterop.Range range;
+                //负责列头Start
+                DataColumn dc;
+                int ColumnID = 1;
+                range = (ExcelInterop.Range)sheet.Cells[1, 1];
+                while (range.Text.ToString().Trim() != "")
+                {
+                    dc = new DataColumn();
+                    dc.DataType = System.Type.GetType("System.String");
+                    dc.ColumnName = range.Text.ToString().Trim();
+                    dt.Columns.Add(dc);
+                    range = (ExcelInterop.Range)sheet.Cells[1, ++ColumnID];
+                }
+                for (int iRow = 2; iRow <= iRowCount; iRow++)
+                {
+                    DataRow dr = dt.NewRow();
+                    for (int iCol = 1; iCol <= iColCount; iCol++)
+                    {
+                        range = (ExcelInterop.Range)sheet.Cells[iRow, iCol];
+                        cellContent = (range.Value2 == null) ? "" : range.Text.ToString();
+                        dr[iCol-1] = cellContent;
+                    }
+                    dt.Rows.Add(dr);
+                }
+            }
+            return dt;
+        }
+        #endregion
+
+        #region GetSheetData
+        /// <summary>
+        /// Connect to excle
+        /// </summary>
+        private static void SaveDataSet(DataSet ds,string outputFile)
+        {
+            StreamWriter mywrite = new StreamWriter(outputFile, false, System.Text.Encoding.UTF8, 100);
+            for (int t = 0; t < ds.Tables.Count; t++)
+            {
+                for (int i = 0; i < ds.Tables[t].Columns.Count; i++)
+                {
+                    mywrite.Write(ds.Tables[t].Columns[i].Caption + "\t");
+                }
+                mywrite.WriteLine();
+                for (int j = 0; j < ds.Tables[t].Rows.Count; j++)
+                {
+                    for (int k = 0; k < ds.Tables[t].Columns.Count; k++)
+                    {
+                        mywrite.Write(ds.Tables[t].Rows[j].ItemArray.GetValue(k) + "\t");
+                    }
+                    mywrite.WriteLine();
+                }
+                mywrite.WriteLine();
+            }
+            mywrite.Close();
+        }
+        #endregion
+
+        #region SaveAsTXT
+        /// <summary>
+        /// 将Excel文件另存为TXT格式
+        /// </summary>
+        private static void SaveAsTXT(string inputFile, string outputFile)
+        {
             ExcelInterop.Application excel = null;
             ExcelInterop.Workbook workbook = null;
             string tempFileName = null;
-
+            DataSet ds = new DataSet();
             try
             {
                 excel = new ExcelInterop.ApplicationClass
@@ -714,6 +820,78 @@ namespace OfficeConverter
                 };
 
                 var extension = Path.GetExtension(inputFile);
+
+                if (string.IsNullOrWhiteSpace(extension))
+                    extension = string.Empty;
+
+                workbook = Open(excel, inputFile, extension, false);
+
+                // We cannot determine a print area when the document is marked as final so we remove this
+                //workbook.Final = false;
+
+                // Fix for "This command is not available in a shared workbook."
+                if (workbook.MultiUserEditing)
+                {
+                    tempFileName = Path.GetTempFileName() + Guid.NewGuid() + Path.GetExtension(inputFile);
+                    workbook.SaveAs(tempFileName, AccessMode: ExcelInterop.XlSaveAsAccessMode.xlExclusive);
+                }
+                foreach (var sheetObject in workbook.Sheets)
+                {
+                    var sheet = sheetObject as ExcelInterop.Worksheet;
+                    DataTable dt = new DataTable();
+                    dt = GetSheetData(sheet);
+                    ds.Tables.Add(dt);
+                    Marshal.ReleaseComObject(sheet);
+                    continue;
+                }
+                //读取ds数据集，保存到txt
+                SaveDataSet(ds, outputFile);
+            }
+            finally
+            {
+                if (workbook != null)
+                {
+                    workbook.Saved = true;
+                    workbook.Close(false);
+                    Marshal.ReleaseComObject(workbook);
+                }
+                if (excel != null)
+                {
+                    excel.Quit();
+                    Marshal.ReleaseComObject(excel);
+                }
+
+                if (!string.IsNullOrEmpty(tempFileName) && File.Exists(tempFileName))
+                    File.Delete(tempFileName);
+            }
+        }
+        #endregion
+
+        #region SaveAsPDF
+        /// <summary>
+        /// 将Excel文件另存为PDF格式
+        /// </summary>
+        private static void SaveAsPDF(string inputFile, string outputFile)
+        {
+            ExcelInterop.Application excel = null;
+            ExcelInterop.Workbook workbook = null;
+            string tempFileName = null;
+            try
+            {
+                excel = new ExcelInterop.ApplicationClass
+                {
+                    ScreenUpdating = false,
+                    DisplayAlerts = false,
+                    DisplayDocumentInformationPanel = false,
+                    DisplayRecentFiles = false,
+                    DisplayScrollBars = false,
+                    AutomationSecurity = MsoAutomationSecurity.msoAutomationSecurityForceDisable,
+                    PrintCommunication = true, // DO NOT REMOVE THIS LINE, NO NEVER EVER ... DON'T EVEN TRY IT
+                    Visible = false
+                };
+
+                var extension = Path.GetExtension(inputFile);
+
                 if (string.IsNullOrWhiteSpace(extension))
                     extension = string.Empty;
 
@@ -801,7 +979,9 @@ namespace OfficeConverter
 
                 // It is not possible in Excel to export an empty workbook
                 if (usedSheets != 0)
+                {
                     workbook.ExportAsFixedFormat(ExcelInterop.XlFixedFormatType.xlTypePDF, outputFile);
+                }
                 else
                     throw new OCFileContainsNoData("The file '" + Path.GetFileName(inputFile) + "' contains no data");
             }
@@ -823,9 +1003,6 @@ namespace OfficeConverter
                 if (!string.IsNullOrEmpty(tempFileName) && File.Exists(tempFileName))
                     File.Delete(tempFileName);
             }
-
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
         }
         #endregion
 

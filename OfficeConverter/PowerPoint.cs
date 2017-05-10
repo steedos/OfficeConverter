@@ -119,6 +119,7 @@ namespace OfficeConverter
                 };
 
                 presentation = Open(powerPoint, inputFile, false);
+                
                 presentation.ExportAsFixedFormat(outputFile, PowerPointInterop.PpFixedFormatType.ppFixedFormatTypePDF);
             }
             finally
