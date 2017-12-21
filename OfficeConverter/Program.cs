@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Office.Interop.Word;
+using System.Diagnostics;
 
 namespace OfficeConverter
 {
@@ -10,7 +11,9 @@ namespace OfficeConverter
     {
         static void Main(string[] args)
         {
-            if(args.Length < 2 || args.Length > 3)
+            //args[0] = "D:\\OfficeConverter\\File\\PSW.xlsx";
+            //args[1] = "D:\\OfficeConverter\\File\\PSW.txt";
+            if (args.Length < 2 || args.Length > 3)
             {
                 System.Console.WriteLine("Error: no filenames specified");
                 System.Console.WriteLine("Usage: mswordconverter inputfile outputfile");
@@ -19,13 +22,18 @@ namespace OfficeConverter
                 System.Console.WriteLine("format support depends on whether support is present in office itself");
                 return;
             }
-            //read filenames
             string inputFile = args[0];
             string outputFile = args[1];
 
             Converter converter = new Converter();
-            converter.Convert(inputFile, outputFile);
-            
+            try
+            {
+                converter.Convert(inputFile, outputFile);
+            }
+            catch
+            {
+                System.Environment.Exit(0);
+            }
         }
     }
 }

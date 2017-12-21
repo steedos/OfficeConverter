@@ -146,18 +146,10 @@ namespace OfficeConverter
                 case ".DOCM":
                 case ".DOCX":
                 case ".DOTM":
-                    if (Word.IsPasswordProtected(inputFile))
-                        throw new OCFileIsPasswordProtected("The file '" + Path.GetFileName(inputFile) +
-                                                            "' is password protected");
-
                     Word.Convert(inputFile, outputFile);
                     break;
 
                 case ".ODT":
-                    if (OpenDocumentFormatIsPasswordProtected(inputFile))
-                        throw new OCFileIsPasswordProtected("The file '" + Path.GetFileName(inputFile) +
-                                                            "' is password protected");
-
                     Word.Convert(inputFile, outputFile);
                     break;
 
@@ -176,9 +168,6 @@ namespace OfficeConverter
                 case ".XLSX":
                 case ".XLTM":
                 case ".XLTX":
-                    if (Excel.IsPasswordProtected(inputFile))
-                        throw new OCFileIsPasswordProtected("The file '" + Path.GetFileName(inputFile) +
-                                                            "' is password protected");
                     Excel.Convert(inputFile, outputFile);
                     break;
 
@@ -187,10 +176,6 @@ namespace OfficeConverter
                     break;
 
                 case ".ODS":
-                    if (OpenDocumentFormatIsPasswordProtected(inputFile))
-                        throw new OCFileIsPasswordProtected("The file '" + Path.GetFileName(inputFile) +
-                                                            "' is password protected");
-
                     Excel.Convert(inputFile, outputFile);
                     break;
 
@@ -203,28 +188,12 @@ namespace OfficeConverter
                 case ".PPSX":
                 case ".PPTM":
                 case ".PPTX":
-                    if (PowerPoint.IsPasswordProtected(inputFile))
-                        throw new OCFileIsPasswordProtected("The file '" + Path.GetFileName(inputFile) + "' is password protected");
-
                     PowerPoint.Convert(inputFile, outputFile);
                     break;
 
                 case ".ODP":
-                    if (OpenDocumentFormatIsPasswordProtected(inputFile))
-                        throw new OCFileIsPasswordProtected("The file '" + Path.GetFileName(inputFile) +
-                                                            "' is password protected");
-
                     PowerPoint.Convert(inputFile, outputFile);
                     break;
-
-                default:
-                    throw new OCFileTypeNotSupported("The file '" + Path.GetFileName(inputFile) +
-                                                     "' is not supported only, " + Environment.NewLine +
-                                                     ".DOC, .DOT, .DOCM, .DOCX, .DOTM, .ODT, .RTF, .MHT, " + Environment.NewLine +
-                                                     ".WPS, .WRI, .XLS, .XLT, .XLW, .XLSB, .XLSM, .XLSX, " + Environment.NewLine +
-                                                     ".XLTM, .XLTX, .CSV, .ODS, .POT, .PPT, .PPS, .POTM, " + Environment.NewLine +
-                                                     ".POTX, .PPSM, .PPSX, .PPTM, .PPTX, .ODP" + Environment.NewLine +
-                                                     " are supported");
             }
         }
         #endregion
