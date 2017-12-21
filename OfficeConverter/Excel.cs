@@ -697,6 +697,7 @@ namespace OfficeConverter
             string formatString = outputFile.Substring(outputFile.LastIndexOf(".") + 1);
 
             if (formatString == "txt")
+                //ReadAsTXT(inputFile, outputFile);
                 SaveAsTXT(inputFile, outputFile);
             if (formatString == "pdf")
                 SaveAsPDF(inputFile, outputFile);
@@ -795,11 +796,11 @@ namespace OfficeConverter
         }
         #endregion
 
-        #region SaveAsTXT
+        #region ReadAsTXT
         /// <summary>
         /// 将Excel文件另存为TXT格式
         /// </summary>
-        private static void SaveAsTXT(string inputFile, string outputFile)
+        private static void ReadAsTXT(string inputFile, string outputFile)
         {
             ExcelInterop.Application excel = null;
             ExcelInterop.Workbook workbook = null;
@@ -866,6 +867,168 @@ namespace OfficeConverter
             }
         }
         #endregion
+
+
+        #region SaveAsTXT
+        /// <summary>
+        /// 将Excel文件另存为PDF格式
+        /// </summary>
+        private static void SaveAsTXT(string inputFile, string outputFile)
+        {
+            ExcelInterop.Application excel = null;
+            ExcelInterop.Workbook workbook = null;
+            string tempFileName = "";
+            try
+            {
+                excel = new ExcelInterop.ApplicationClass
+                {
+                    ScreenUpdating = false,
+                    DisplayAlerts = false,
+                    DisplayDocumentInformationPanel = false,
+                    DisplayRecentFiles = false,
+                    DisplayScrollBars = false,
+                    AutomationSecurity = MsoAutomationSecurity.msoAutomationSecurityForceDisable,
+                    PrintCommunication = true, // DO NOT REMOVE THIS LINE, NO NEVER EVER ... DON'T EVEN TRY IT
+                    Visible = false
+                };
+
+                var extension = Path.GetExtension(inputFile);
+
+                if (string.IsNullOrWhiteSpace(extension))
+                    extension = string.Empty;
+
+                workbook = Open(excel, inputFile, extension, false);
+                
+                workbook.Final = false;
+                
+                if (workbook.MultiUserEditing)
+                {
+                    tempFileName = Path.GetTempFileName() + Guid.NewGuid() + Path.GetExtension(inputFile);
+                    workbook.SaveAs(tempFileName, AccessMode: ExcelInterop.XlSaveAsAccessMode.xlExclusive);
+                }
+
+                var usedSheets = 0;
+
+                foreach (var sheetObject in workbook.Sheets)
+                {
+                    var sheet = sheetObject as ExcelInterop.Worksheet;
+
+                    if (sheet != null)
+                    {
+                        var protection = sheet.Protection;
+                        var activeWindow = excel.ActiveWindow;
+
+                        try
+                        {
+                            // ReSharper disable once RedundantCast
+                            ((Microsoft.Office.Interop.Excel._Worksheet)sheet).Activate();
+                            if (!sheet.ProtectContents || protection.AllowFormattingColumns)
+                                if (activeWindow.View != ExcelInterop.XlWindowView.xlPageLayoutView)
+                                    sheet.Columns.AutoFit();
+
+                        }
+                        catch (COMException)
+                        {
+                            // Do nothing, this sometimes failes and there is nothing we can do about it
+                        }
+                        finally
+                        {
+                            Marshal.ReleaseComObject(activeWindow);
+                            Marshal.ReleaseComObject(protection);
+                        }
+
+                        var printArea = GetWorksheetPrintArea(sheet);
+
+                        switch (printArea)
+                        {
+                            case "shapes":
+                                SetWorkSheetPaperSize(sheet, string.Empty);
+                                usedSheets += 1;
+                                break;
+
+                            case "":
+                                break;
+
+                            default:
+                                SetWorkSheetPaperSize(sheet, printArea);
+                                usedSheets += 1;
+                                break;
+                        }
+
+                        Marshal.ReleaseComObject(sheet);
+                        continue;
+                    }
+
+                    var chart = sheetObject as ExcelInterop.Chart;
+                    if (chart != null)
+                    {
+                        SetChartPaperSize(chart);
+                        Marshal.ReleaseComObject(chart);
+                    }
+                }
+
+                // It is not possible in Excel to export an empty workbook
+                if (usedSheets != 0)
+                {
+                    workbook.SaveAs(outputFile, ExcelInterop.XlFileFormat.xlUnicodeText);
+                    //FileStream fs = new FileStream(outputFile, FileMode.Open, FileAccess.ReadWrite);
+                    //StreamReader sr = new StreamReader(fs);
+                    //string str = sr.ReadToEnd();
+                    ////while (str != null)
+                    ////{
+                    ////    str += sr.ReadLine()+"\n";
+                    ////}
+                    //sr.Close();
+                    //StreamWriter sw = new StreamWriter(outputFile, false, System.Text.Encoding.UTF8, 100);
+                    //sw.Write(str);
+                    //sw.Close();
+                    //fs.Close();
+                }
+                else
+                {
+                    //修改空字段
+                    FileStream fs = new FileStream(outputFile, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                    StreamWriter sw = new StreamWriter(fs);
+                    sw.Write("Excle is Null");
+                    sw.Close();
+                    fs.Close();
+                }
+                    
+            }
+            finally
+            {
+                if (workbook != null)
+                {
+                    workbook.Saved = true;
+                    workbook.Close(false);
+                    Marshal.ReleaseComObject(workbook);
+                }
+
+                if (excel != null)
+                {
+                    excel.Quit();
+                    Marshal.ReleaseComObject(excel);
+                }
+
+                if (!string.IsNullOrEmpty(tempFileName) && File.Exists(tempFileName))
+                    File.Delete(tempFileName);
+
+                FileStream fs = new FileStream(outputFile, FileMode.Open, FileAccess.ReadWrite);
+                StreamReader sr = new StreamReader(fs);
+                string str = sr.ReadToEnd();
+                sr.Close();
+                StreamWriter sw = new StreamWriter(outputFile, false, System.Text.Encoding.UTF8, 100);
+                sw.Write(str);
+                sw.Close();
+                fs.Close();
+            }
+        }
+        #endregion
+
+
+
+
+
 
         #region SaveAsPDF
         /// <summary>
@@ -1005,6 +1168,10 @@ namespace OfficeConverter
             }
         }
         #endregion
+
+
+
+
 
         #region IsPasswordProtected
         /// <summary>

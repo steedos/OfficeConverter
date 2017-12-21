@@ -157,24 +157,23 @@ namespace OfficeConverter
                 word.Options.UpdateLinksAtPrint = false;
                 
                 document = (WordInterop.DocumentClass) Open(word, inputFile, false);
-
-                // Do not remove this line!!
-                // This is yet another solution to a weird Office problem. Sometimes there
-                // are Word documents with images in it that take some time to load. When
-                // we remove the line below the ExportAsFixedFormat method will be called 
-                // before the images are loaded thus resulting in an unendless loop somewhere
-                // in this method.
-                // ReSharper disable once UnusedVariable
-                var count = document.ComputeStatistics(WordInterop.WdStatistic.wdStatisticPages);
-
-                word.DisplayAutoCompleteTips = false;
-                word.DisplayScreenTips = false;
-                word.DisplayStatusBar = false;
-                document.SaveAs2(outputFile, format,Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, MsoEncoding.msoEncodingUTF8);
-
-                //document.SaveAs2(outputFile,format);
-                //保存后转码
+                if (document != null)
+                {
+                    // Do not remove this line!!
+                    // This is yet another solution to a weird Office problem. Sometimes there
+                    // are Word documents with images in it that take some time to load. When
+                    // we remove the line below the ExportAsFixedFormat method will be called 
+                    // before the images are loaded thus resulting in an unendless loop somewhere
+                    // in this method.
+                    // ReSharper disable once UnusedVariable
+                    var count = document.ComputeStatistics(WordInterop.WdStatistic.wdStatisticPages);
+                    word.DisplayAutoCompleteTips = false;
+                    word.DisplayScreenTips = false;
+                    word.DisplayStatusBar = false;
+                    document.SaveAs2(outputFile, format, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, MsoEncoding.msoEncodingUTF8);
+                }
             }
+
             finally
             {
                 if (document != null)
@@ -285,11 +284,8 @@ namespace OfficeConverter
             catch (Exception exception)
             {
                 if (repairMode)
-                    throw new OCFileIsCorrupt("The file '" + Path.GetFileName(inputFile) +
-                                              "' seems to be corrupt, error: " +
-                                              ExceptionHelpers.GetInnerException(exception));
-
-                return Open(word, inputFile, true);
+                    EventLog.WriteEntry("OfficeConverter", ExceptionHelpers.GetInnerException(exception), EventLogEntryType.Error);
+                return null;
             }
         }
         #endregion
