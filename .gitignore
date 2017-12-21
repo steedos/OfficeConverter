@@ -5,6 +5,7 @@
 *.suo
 *.user
 *.sln.docstates
+*.sln
 
 # Build results
 
@@ -154,6 +155,7 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
-OfficeConverterTest/OfficeConverterTest.csproj
-OfficeConverterTest/OfficeConverterTest.csproj
-OfficeConverterTest/OfficeConverterTest.csproj
+*.csproj
+*.sln
+OfficeConverterConsoleTool/App.config
+*.csproj
